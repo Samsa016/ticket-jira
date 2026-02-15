@@ -13,6 +13,7 @@ model Board {
   title     String
   createdAt DateTime @default(now())
   tasks     Task[]
+  order     Int      @default(0)
 }
 
 model Task {

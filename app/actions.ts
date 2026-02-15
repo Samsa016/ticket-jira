@@ -3,6 +3,13 @@ import { db } from "@/lib/db"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 
+export async function moveTask(taskId: string, newStatus: string, boardId: string) {
+    await db.task.update({
+        where: {id: taskId},
+        data: {status: newStatus}
+    })
+    revalidatePath('/boards/' + boardId)
+}
 
 export async function createBoard(formData: FormData) {
 
@@ -62,7 +69,7 @@ export async function deleteTask(formData: FormData) {
 
 export async function createTask(formData: FormData) {
     const boardId = formData.get("boardId") as string
-    const taskText = formData.get("taskText") as string
+    const taskText = formData.get("content") as string
 
     if (taskText == '' || !taskText) return
 
@@ -75,4 +82,14 @@ export async function createTask(formData: FormData) {
     })
 
     revalidatePath('/boards/' + boardId)
+}
+
+export async function deleteBoard(formData: FormData) {
+    const boardId = formData.get("boardId") as string
+
+    await db.board.delete({
+        where: {
+            id: boardId
+        }
+    })
 }
