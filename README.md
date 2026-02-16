@@ -1,36 +1,151 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## Ticket Jira — простая Kanban‑доска на Next.js
 
-## Getting Started
+Небольшое приложение‑аналог Jira/Trello для личных проектов и задач.  
+Проект реализован на современном стеке `Next.js 16 (App Router) + React 19 + TypeScript + Prisma + SQLite` с использованием drag‑and‑drop библиотеки `@hello-pangea/dnd`.
 
-First, run the development server:
+### Основные возможности
+
+- **Доски проектов**
+  - Создание доски с произвольным названием.
+  - Автоматическое создание стартового набора задач при создании доски.
+  - Удаление доски.
+
+- **Kanban‑колонки задач**
+  - Три столбца: **«К исполнению» (TODO)**, **«В процессе» (IN_PROGRESS)**, **«Готово» (DONE)**.
+  - Создание новой задачи в колонке «К исполнению».
+  - Перетаскивание задач между колонками (drag‑and‑drop).
+  - Сохранение статуса задачи в базе данных.
+  - Удаление отдельной задачи.
+
+- **Технологические особенности**
+  - Server Components и **Server Actions** (`'use server'`) для работы с БД и мутаций.
+  - Клиентский компонент `BoardClient` (`'use client'`) для drag‑and‑drop логики.
+  - Tailwind CSS 4 для быстрой стилизации.
+  - Prisma ORM + SQLite как встроенная база данных.
+
+## Стек технологий
+
+- **Next.js** `16.1.6` (App Router, `app/` директория)
+- **React** `19.2.3`
+- **TypeScript** `^5`
+- **Tailwind CSS** `^4` (через `@import "tailwindcss";` в `globals.css`)
+- **Prisma** `^6.19.2`
+- **SQLite** (файл `prisma/dev.db`)
+- **@hello-pangea/dnd** — drag‑and‑drop для Kanban‑доски
+
+## Структура проекта
+
+- **`app/layout.tsx`** — корневой layout приложения, подключение шрифтов Geist и глобальных стилей.
+- **`app/page.tsx`** — главная страница:
+  - список всех досок;
+  - форма создания новой доски;
+  - возможность удалить доску.
+- **`app/boards/[id]/page.tsx`** — страница конкретной доски:
+  - загрузка доски и связанных задач с помощью Prisma;
+  - рендеринг компонента `BoardClient` с задачами.
+- **`app/components/BoardClient.tsx`** — клиентский компонент Kanban‑доски:
+  - разделение задач по статусам (`TODO`, `IN_PROGRESS`, `DONE`);
+  - drag‑and‑drop через `@hello-pangea/dnd`;
+  - форма создания задачи в колонке `TODO`;
+  - удаление задач.
+- **`app/actions.ts`** — серверные экшены:
+  - `createBoard` — создание доски с базовым набором задач;
+  - `deleteBoard` — удаление доски;
+  - `createTask` — создание задачи;
+  - `deleteTask` — удаление задачи;
+  - `moveTask` — смена статуса задачи при перетаскивании;
+  - `updateTaskStatus` — смена статуса задачи формой (зарезервировано под альтернативный UX).
+- **`lib/db.ts`** — инициализация `PrismaClient` с кэшированием в `global` (во время разработки).
+- **`prisma/schema.prisma`** — схема БД:
+  - `Board` — доска (id, title, createdAt, order, связь `tasks`);
+  - `Task` — задача (id, content, status, createdAt, boardId, связь с `Board`).
+- **`app/globals.css`** — глобальные стили, в том числе настройка CSS‑переменных для светлой/тёмной темы и подключение Tailwind.
+
+## Установка и запуск
+
+### Предварительные требования
+
+- **Node.js**: рекомендуется версия `>= 20`.
+- **npm** (или другой пакетный менеджер: `pnpm`, `yarn`, `bun`).
+
+### Локальный запуск
+
+```bash
+git clone <URL_ВАШЕГО_РЕПОЗИТОРИЯ>
+cd ticket-jira
+
+npm install
+```
+
+Далее инициализируйте базу данных Prisma (SQLite):
+
+```bash
+npx prisma migrate dev --name init
+# либо, если миграции уже созданы и нужно просто применить схему:
+# npx prisma db push
+```
+
+Запустите dev‑сервер:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Приложение будет доступно по адресу [`http://localhost:3000`](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Доступные npm‑скрипты
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **`npm run dev`**: запуск приложения в режиме разработки.
+- **`npm run build`**: сборка production‑версии.
+- **`npm run start`**: запуск уже собранного приложения.
+- **`npm run lint`**: запуск ESLint для проверки кода.
 
-## Learn More
+## Работа с базой данных
 
-To learn more about Next.js, take a look at the following resources:
+Конфигурация расположена в `prisma/schema.prisma`:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- провайдер: `sqlite`;
+- путь к файлу БД: `"file:./dev.db"`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Основные команды Prisma:
 
-## Deploy on Vercel
+```bash
+# Применить миграции и сгенерировать клиент
+npx prisma migrate dev --name init
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+# Сгенерировать Prisma Client (обычно не требуется отдельно, т.к. вызывается миграцией)
+npx prisma generate
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Переменные окружения
+
+На текущем этапе приложение использует **SQLite с жёстко заданным URL** в `schema.prisma`, поэтому `.env` не обязателен.  
+При желании можно:
+
+- вынести `DATABASE_URL` в `.env`;
+- переключиться на другой провайдер (PostgreSQL/MySQL и т.д.).
+
+Пример строки для `.env` при использовании SQLite:
+
+```bash
+DATABASE_URL="file:./prisma/dev.db"
+```
+
+## Архитектурные особенности
+
+- **Next.js App Router**: используется директория `app/`, серверные и клиентские компоненты.
+- **Server Actions**: вся работа с БД (создание/обновление/удаление сущностей) реализована через server actions в `app/actions.ts` с последующей инвалидацией кэша через `revalidatePath`.
+- **Простая доменная модель**: две сущности — `Board` и `Task`, каскадное удаление задач при удалении доски.
+- **UI/UX**:
+  - акцент на простоту и быстроту создания досок и задач;
+  - наглядный drag‑and‑drop между колонками;
+  - базовая адаптивность сетки досок и колонок.
+
+## Возможные направления развития
+
+- Авторизация и привязка досок к пользователю.
+- Сохранение порядка задач в рамках колонки.
+- Описание задач (description), дедлайны, теги, приоритеты.
+- Комментарии к задачам.
+- История изменений (activity log).
+- Деплой на Vercel или любой другой хостинг для Next.js.
